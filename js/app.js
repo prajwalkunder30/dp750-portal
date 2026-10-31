@@ -382,13 +382,56 @@
       }).join('')}`;
   }
 
+  function viewGuide(params) {
+    const d = params.get('d'), id = params.get('c');
+    const chap = c => `<article class="chapter"><div class="muted">Domain ${c.d} · ${esc(DOMAINS[c.d].name)}</div>
+      <h1>Chapter ${esc(c.id)}: ${esc(c.title)}</h1>${c.html}</article>`;
+    if (params.has('all')) {
+      const list = d ? GUIDE.filter(c => c.d == d) : GUIDE;
+      app.innerHTML = `<div class="notice noprint" style="margin-bottom:14px"><div class="row spread">
+        <span>Use <b>Print → Save as PDF</b>. Turn on <b>Background graphics</b> in the print dialog to keep coloured boxes.</span>
+        <button class="btn accent" id="pr">Print / Save as PDF</button></div></div>
+        <section class="cover"><div class="logo">DP</div><h1>DP-750 Study Guide</h1>
+        <h2>Azure Databricks Data Engineering</h2><p>${d ? `Domain ${d}: ${esc(DOMAINS[d].name)}` : 'All domains'}</p>
+        <p class="muted">Original study notes aligned to the DP-750 skills outline. Not affiliated with Microsoft.
+        Verify details against the linked Microsoft Learn pages.</p></section>
+        <section class="chapter toc"><h1>Contents</h1>${Object.keys(DOMAINS).filter(k => !d || k == d).map(k =>
+          `<h3>Domain ${k}: ${esc(DOMAINS[k].name)} (${DOMAINS[k].pct})</h3><ol>${list.filter(c => c.d == k).map(c =>
+            `<li value="${parseInt(c.id.split('.')[1])}">${esc(c.id)} ${esc(c.title)}</li>`).join('')}</ol>`).join('')}</section>
+        ${list.map(chap).join('')}`;
+      $('#pr').onclick = () => window.print();
+      return;
+    }
+    const i = GUIDE.findIndex(c => c.id === id);
+    if (i >= 0) {
+      const nav = `<div class="row spread noprint" style="margin:14px 0">
+        ${i ? `<a class="btn" href="#/guide?c=${esc(GUIDE[i - 1].id)}">← ${esc(GUIDE[i - 1].id)} ${esc(GUIDE[i - 1].title)}</a>` : '<span></span>'}
+        <a class="btn" href="#/guide">Contents</a>
+        ${i < GUIDE.length - 1 ? `<a class="btn primary" href="#/guide?c=${esc(GUIDE[i + 1].id)}">${esc(GUIDE[i + 1].id)} ${esc(GUIDE[i + 1].title)} →</a>` : '<span></span>'}</div>`;
+      app.innerHTML = nav + chap(GUIDE[i]) + nav;
+      return;
+    }
+    app.innerHTML = `<h1>Study guide</h1>
+      <p class="muted">Original, exam-focused notes for every skill in the outline, with links to Microsoft Learn for deeper reading.
+      Open a chapter to read online, or open a printable version and save it as PDF.</p>
+      <p class="row"><a class="btn accent" href="#/guide?all">Printable full guide (PDF)</a></p>
+      ${Object.entries(DOMAINS).map(([k, D]) => {
+        const cs = GUIDE.filter(c => c.d == k);
+        return `<div class="card domain" style="--c:var(--d${k});margin-bottom:14px"><div class="row spread"><h3>Domain ${k}: ${esc(D.name)} <span class="muted">(${D.pct})</span></h3>
+          ${cs.length ? `<a class="btn" href="#/guide?all&d=${k}">Print this domain</a>` : ''}</div>
+          ${cs.length ? `<ul class="skills">${cs.map(c => `<li><a href="#/guide?c=${esc(c.id)}">${esc(c.id)} ${esc(c.title)}</a></li>`).join('')}</ul>`
+            : '<p class="muted">Chapters coming soon.</p>'}</div>`;
+      }).join('')}`;
+  }
+  window.addEventListener('beforeprint', () => document.querySelectorAll('.chapter details').forEach(x => x.open = true));
+
   // ---------- router ----------
   function route() {
     const [path, qs] = (location.hash.slice(2) || 'home').split('?');
     const params = new URLSearchParams(qs || '');
     document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#/' + path));
     if (path !== 'exam' && path !== 'cases') app.onclick = app.onchange = null;
-    ({ practice: viewPractice, exam: viewExam, cases: viewCases, resources: viewResources }[path] || viewHome)(params);
+    ({ practice: viewPractice, exam: viewExam, cases: viewCases, resources: viewResources, guide: viewGuide }[path] || viewHome)(params);
     window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', route);

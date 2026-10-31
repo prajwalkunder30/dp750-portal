@@ -1,6 +1,10 @@
 window.QB = [];
 window.FACTS = [];
 window.CASES = [];
+window.GUIDE = [];
+
+// addChapter(domain, chapterNo, title, html) - study guide chapter; html is trusted static content
+window.addChapter = (d, id, title, html) => GUIDE.push({ d, id, title, html });
 
 // addQ(domain, topic, question, options, answerIndex | [indexes], explanation, resourceKey)
 window.addQ = (d, topic, q, opts, ans, exp, ref) =>
